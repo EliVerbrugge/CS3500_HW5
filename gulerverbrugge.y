@@ -1,4 +1,14 @@
 /*
+
+//------------------------------------------
+//------------------------------------------
+//------------------------------------------
+//------------------------------------------
+//------------------------------------------
+//------------------------------------------
+//------------------------------------------
+//------------------------------------------
+
       gulerverbrugge.y
 	  created by Eli Verbrugge and Timur Guler
  	Specifications for the MFPL language, YACC input file.
@@ -531,10 +541,29 @@ N_IF_EXPR   : T_IF N_EXPR N_EXPR N_EXPR
 				}
 				
 	
-
-				$$.type = $3.type | $4.type;
+				
+				//------------------------------------------
+				//------------------------------------------
+				//------------------------------------------
+				//------------------------------------------
+				//$$.type = $3.type | $4.type; WE DONT SEEM TO NEED THIS ANYMORE
 				$$.numParams = NOT_APPLICABLE;
-				$$.returnType = NOT_APPLICABLE;				
+				$$.returnType = NOT_APPLICABLE;	
+
+
+				if($2.type == nil)
+				{
+					$$.type = $4.type;
+				}
+				else
+				{
+					$$.type = $3.type;
+				}
+
+				//------------------------------------------	
+				//------------------------------------------
+				//------------------------------------------
+				//------------------------------------------			
 			}
 			;
 N_LET_EXPR  : T_LETSTAR T_LPAREN N_ID_EXPR_LIST T_RPAREN N_EXPR
@@ -556,14 +585,23 @@ N_ID_EXPR_LIST  :
             | N_ID_EXPR_LIST T_LPAREN T_IDENT N_EXPR T_RPAREN 
 			{
 
+			//------------------------------------------
+			//------------------------------------------
+			//------------------------------------------
+			//------------------------------------------
+			$3.type = $4.type
 			string lexeme = string($3);
 			bool success = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme,
 																		$4.type, $4.numParams, $4.returnType));
 			if (!success) 
 				yyerror("Multiply defined identifier");
+			//------------------------------------------
+			//------------------------------------------
+			//------------------------------------------
+			//------------------------------------------
 			}
 			;
-N_LAMBDA_EXPR   : T_LAMBDA T_LPAREN N_ID_LIST T_RPAREN N_EXPR 
+/*NOT NEEDED IN THIS PROJECT SO I COMMENTED THEM OUT... N_LAMBDA_EXPR   : T_LAMBDA T_LPAREN N_ID_LIST T_RPAREN N_EXPR 
 			{
 			if($5.type == FUNCTION)
 			{
@@ -587,7 +625,7 @@ N_ID_LIST       :
 			if (! success) 
 				yyerror("Multiply defined identifier");
 			}
-			;
+			;*/
 N_PRINT_EXPR    : T_PRINT N_EXPR
 			{
 			if($2.type == FUNCTION)
@@ -597,6 +635,17 @@ N_PRINT_EXPR    : T_PRINT N_EXPR
 			$$.type = $2.type;
 			$$.numParams = NOT_APPLICABLE;
 			$$.returnType = NOT_APPLICABLE;
+
+			//------------------------------------------
+			//------------------------------------------
+			//------------------------------------------
+			//------------------------------------------
+			printf($2.value);
+			printf("\n");
+			//------------------------------------------
+			//------------------------------------------
+			//------------------------------------------
+			//------------------------------------------
 			}
 			;
 N_INPUT_EXPR    : T_INPUT
