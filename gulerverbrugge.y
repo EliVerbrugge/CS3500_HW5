@@ -115,7 +115,7 @@ N_START		: // epsilon
 			{
 			printRule("START", "START EXPR");
 			printf("\n---- Completed parsing ----\n\n");
- 			printf("\nValue of the expression is: ");
+ 			printf("\nValue of the expression is: %s\n", $2.value);
 			}
 			;
 N_EXPR		: N_CONST
@@ -199,12 +199,12 @@ N_PROGN_OR_USERFUNCTCALL : N_FUNCT_NAME N_ACTUAL_PARAMS
 				if($2.type == NOT_APPLICABLE)
 				{
 					$$.type = BOOL;
-					$$.value = $2.value;
+					$$.value = NIL;
 				}
 				else
 				{
 					$$.type = $2.type;
-					$$.value = NIL;
+					$$.value = $2.value;
 				}
 				}
 				;
@@ -219,9 +219,9 @@ N_ARITHLOGIC_EXPR	: N_UN_OP N_EXPR
 				//just invert, as not is the only unary operator
 				const char* expr=$2.value;
 				if(std::strcmp(expr, NIL)==0)
-					$2.value=TRUE;
+					$$.value=TRUE;
 				else
-					$2.value=NIL;
+					$$.value=NIL;
 				}
 				| N_BIN_OP N_EXPR N_EXPR
 				{
@@ -261,7 +261,7 @@ N_ARITHLOGIC_EXPR	: N_UN_OP N_EXPR
 								{
 									if(num2 == 0)
 									{
-										yyerror("Attempted division by 0");
+										yyerror("Attempted division by zero");
 									}
 									int val = num1/num2;
 									sprintf($$.value, "%d", val);
@@ -447,7 +447,7 @@ N_ARITHLOGIC_EXPR	: N_UN_OP N_EXPR
                      	;
 N_IF_EXPR   : T_IF N_EXPR N_EXPR N_EXPR
 			{			
-				if($2.value == NIL)
+				if(std::strcmp($2.value, NIL)==0)
 				{
 					$$.type = $4.type;
 					$$.value = $4.value;
@@ -489,8 +489,11 @@ N_PRINT_EXPR    : T_PRINT N_EXPR
 			;
 N_INPUT_EXPR    : T_INPUT
 			{
-			std::cin.getline($$.value, 256);
-			if($$.value[0] == '+' || $$.value[0] == '+' || isdigit($$.value[0]))
+			char input[256];
+			std::cin.getline(input, 256);
+			$$.value = (char *)malloc(strlen(input)+1);
+     		strcpy($$.value,input);			
+			if($$.value[0] == '+' || $$.value[0] == '-' || isdigit($$.value[0]))
 			{
 				$$.type = INT;
 			}
@@ -669,5 +672,6 @@ int main(int argc, char** argv)
  {
  	yyparse();
  }while (!feof(yyin));
+ prepareToTerminate();
  return 0;
 }
