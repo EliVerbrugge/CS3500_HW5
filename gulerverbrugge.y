@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <stack>
 #include <ctype.h>
 #include "SymbolTable.h"
@@ -60,6 +61,9 @@ void cleanUp();
 void prepareToTerminate();
 void bail();
 TYPE_INFO findEntryInAnyScope(const string theName);
+
+char NIL[] = "nil";
+char TRUE[] = "t";
 
 void printRule(const char*, const char*);
 int yyerror(const char* s) 
@@ -200,7 +204,7 @@ N_PROGN_OR_USERFUNCTCALL : N_FUNCT_NAME N_ACTUAL_PARAMS
 				else
 				{
 					$$.type = $2.type;
-					$$.value = "nil";
+					$$.value = NIL;
 				}
 				}
 				;
@@ -214,10 +218,10 @@ N_ARITHLOGIC_EXPR	: N_UN_OP N_EXPR
 				{
 				//just invert, as not is the only unary operator
 				const char* expr=$2.value;
-				if(strcmp(expr, "nil")==0)
-					$2.value="t";
+				if(std::strcmp(expr, NIL)==0)
+					$2.value=TRUE;
 				else
-					$2.value="nil";
+					$2.value=NIL;
 				}
 				| N_BIN_OP N_EXPR N_EXPR
 				{
@@ -235,33 +239,32 @@ N_ARITHLOGIC_EXPR	: N_UN_OP N_EXPR
 							{
 								$$.type = INT;
 
-								const char* operator = $1.value;
+								const char* op = $1.value;
 								int num1 = atoi($2.value);
 								int num2 = atoi($3.value);
-								if(strcmp(operator, "+")==0)
+								if(std::strcmp(op, "+")==0)
 								{
-									int val = n1+n2;
-									$$.value = std::to_string(val);			
-
+									int val = num1+num2;
+									sprintf($$.value, "%d", val);
 								}
-								else if(strcmp(operator, "-")==0)
+								else if(std::strcmp(op, "-")==0)
 								{
-									int val = n1-n2;
-									$$.value = std::to_string(val);	
+									int val = num1-num2;
+									sprintf($$.value, "%d", val);
 								}
-								else if(strcmp(operator, "*")==0)
+								else if(std::strcmp(op, "*")==0)
 								{
-									int val = n1*n2;
-									$$.value = std::to_string(val);	
+									int val = num1*num2;
+									sprintf($$.value, "%d", val);
 								}
-								else if(strcmp(operator, "/")==0)
+								else if(std::strcmp(op, "/")==0)
 								{
-									if(n2 == 0)
+									if(num2 == 0)
 									{
 										yyerror("Attempted division by 0");
 									}
-									int val = n1/n2;
-									$$.value = std::to_string(val);	
+									int val = num1/num2;
+									sprintf($$.value, "%d", val);
 								}
 
 							}
@@ -280,45 +283,45 @@ N_ARITHLOGIC_EXPR	: N_UN_OP N_EXPR
 						{
 							$$.type = BOOL;
 
-							const char* operator = $1.value;
+							const char* op = $1.value;
 
 							if($2.type = INT)
 							{
-								$2.value = "t"
+								$2.value = TRUE;
 							}
 							else if($2.type == STR)
 							{
-								if(strcmp($2.value, "nil")==0)
-									$2.value="nil";
+								if(std::strcmp($2.value, NIL)==0)
+									$2.value=NIL;
 								else
-									$2.value="t";
+									$2.value=TRUE;
 							}
 
 							if($3.type = INT)
 							{
-								$3.value = "t"
+								$3.value = TRUE;
 							}
 							else if($3.type == STR)
 							{
-								if(strcmp($3.value, "nil")==0)
-									$3.value="nil";
+								if(std::strcmp($3.value, NIL)==0)
+									$3.value=NIL;
 								else
-									$3.value="t";
+									$3.value=TRUE;
 							}
 
-							if(strcmp(operator, "and")==0)
+							if(std::strcmp(op, "and")==0)
 							{
-								if((strcmp($2.value, "t")==0) && (strcmp($3.value, "t")==0))
-									$$.value="t";
+								if((std::strcmp($2.value, TRUE)==0) && (std::strcmp($3.value, TRUE)==0))
+									$$.value=TRUE;
 								else
-									$$.value="nil";
+									$$.value=NIL;
 							}
-							else if(strcmp(op, "or")==0)
+							else if(std::strcmp(op, "or")==0)
 							{
-								if((strcmp($2.value, "t")==0) || (strcmp($3.value, "t")==0))
-									$$.value="t";
+								if((std::strcmp($2.value, TRUE)==0) || (std::strcmp($3.value, TRUE)==0))
+									$$.value=TRUE;
 								else
-									$$.value="nil";
+									$$.value=NIL;
 							}
 						}
 					}
@@ -344,96 +347,98 @@ N_ARITHLOGIC_EXPR	: N_UN_OP N_EXPR
 							{
 								int num1 = atoi($2.value);
 								int num2 = atoi($3.value);
+								const char* op = $1.value;
 
-								if(strcmp(op, "<")==0)
+								if(std::strcmp(op, "<")==0)
 								{
 									if(num1 < num2)
-										$$.value="t";
+										$$.value=TRUE;
 									else
-										$$.value = "nil";
+										$$.value = NIL;
 								}
-								else if(strcmp(op,">")==0)
+								else if(std::strcmp(op,">")==0)
 								{
 									if(num1 > num2)
-										$$.value="t";
+										$$.value=TRUE;
 									else
-										$$.value="nil";
+										$$.value=NIL;
 								}
-								else if(strcmp(op,"<=")==0)
+								else if(std::strcmp(op,"<=")==0)
 								{
 									if(num1 <= num2)
-										$$.value="t";
+										$$.value=TRUE;
 									else
-										$$.value="nil";
+										$$.value=NIL;
 								}
-								else if(strcmp(op,">=")==0)
+								else if(std::strcmp(op,">=")==0)
 								{
 									if(num1 >= num2)
-										$$.value="t";
+										$$.value=TRUE;
 									else
-										$$.value="nil";
+										$$.value=NIL;
 								}
-								else if(strcmp(op,"=")==0)
+								else if(std::strcmp(op,"=")==0)
 								{
 									if(num1 == num2)
-										$$.value="t";
+										$$.value=TRUE;
 									else
-										$$.value="nil";
+										$$.value=NIL;
 								}
-								else if(strcmp(op,"/=")==0)
+								else if(std::strcmp(op,"/=")==0)
 								{
 									if(num1 != num2)
-										$$.value="t";
+										$$.value=TRUE;
 									else
-										$$.value="nil";
+										$$.value=NIL;
 								}
 							}
 							else
 							{
 								const char* str1 = $2.value;
 								const char* str2 = $3.value;
+								const char* op = $1.value;
 
-								if(strcmp(op, "<")==0)
+								if(std::strcmp(op, "<")==0)
 								{
 									if(str1 < str2)
-										$$.value="t";
+										$$.value=TRUE;
 									else
-										$$.value = "nil";
+										$$.value = NIL;
 								}
-								else if(strcmp(op,">")==0)
+								else if(std::strcmp(op,">")==0)
 								{
 									if(str1 > str2)
-										$$.value="t";
+										$$.value=TRUE;
 									else
-										$$.value="nil";
+										$$.value=NIL;
 								}
-								else if(strcmp(op,"<=")==0)
+								else if(std::strcmp(op,"<=")==0)
 								{
 									if(str1 <= str2)
-										$$.value="t";
+										$$.value=TRUE;
 									else
-										$$.value="nil";
+										$$.value=NIL;
 								}
-								else if(strcmp(op,">=")==0)
+								else if(std::strcmp(op,">=")==0)
 								{
 									if(str1 >= str2)
-										$$.value="t";
+										$$.value=TRUE;
 									else
-										$$.value="nil";
+										$$.value=NIL;
 								}
-								else if(strcmp(op,"=")==0)
+								else if(std::strcmp(op,"=")==0)
 								{
-									if(strcmp(str1, str2)==0)
-										$$.value="t";
+									if(std::strcmp(str1, str2)==0)
+										$$.value=TRUE;
 									else
-										$$.value="nil";
+										$$.value=NIL;
 								}
-								else if(strcmp(op,"/=")==0)
+								else if(std::strcmp(op,"/=")==0)
 								{
-									if(strcmp(str1, str2)!=0)
-										$$.value="t";
+									if(std::strcmp(str1, str2)!=0)
+										$$.value=TRUE;
 									else
-										$$.value="nil";
+										$$.value=NIL;
 								}
 							}
 						}
@@ -442,7 +447,7 @@ N_ARITHLOGIC_EXPR	: N_UN_OP N_EXPR
                      	;
 N_IF_EXPR   : T_IF N_EXPR N_EXPR N_EXPR
 			{			
-				if($2.type == nil)
+				if($2.value == NIL)
 				{
 					$$.type = $4.type;
 					$$.value = $4.value;
@@ -478,14 +483,14 @@ N_PRINT_EXPR    : T_PRINT N_EXPR
 			$$.type = $2.type;
 			$$.value = $2.value;
 
-			printf($2.value);
+			printf("%s", $2.value);
 			printf("\n");
 			}
 			;
 N_INPUT_EXPR    : T_INPUT
 			{
-			std::getline($$.value, 256);
-			if($$.value[0] == '+' || $$.value[0] == '+' || isdigit($$.value[0])
+			std::cin.getline($$.value, 256);
+			if($$.value[0] == '+' || $$.value[0] == '+' || isdigit($$.value[0]))
 			{
 				$$.type = INT;
 			}
@@ -499,13 +504,13 @@ N_EXPR_LIST : N_EXPR N_EXPR_LIST
 			{
 			numExpressions += 1;
 			$$.type = $2.type;
-			$$.type = $2.value;
+			$$.value = $2.value;
 			}
             | N_EXPR
 			{
 			numExpressions = 1;
 			$$.type = $1.type;
-			$$.type = $1.value;
+			$$.value = $1.value;
 			}
 			;
 N_BIN_OP	: N_ARITH_OP
@@ -584,7 +589,7 @@ N_UN_OP	     : T_NOT
 N_ACTUAL_PARAMS	: //epsilon
 				{
 				$$.type = NOT_APPLICABLE;
-				$$.value = "nil";
+				$$.value = NIL;
 				}
 				| N_EXPR_LIST
 				{
