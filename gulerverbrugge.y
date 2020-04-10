@@ -30,6 +30,7 @@
 #include <iostream>
 #include <string>
 #include <stack>
+#include <ctype.h>
 #include "SymbolTable.h"
 using namespace std;
 
@@ -91,8 +92,8 @@ extern "C"
 %token  T_LT T_GT T_LE T_GE T_EQ T_NE T_AND T_OR T_NOT	 
 %token  T_INTCONST T_STRCONST T_T T_NIL T_IDENT T_UNKNOWN
 
-%type <text> T_IDENT
-%type <typeInfo> N_EXPR N_CONST N_PRINT_EXPR N_PARENTHESIZED_EXPR N_ARITHLOGIC_EXPR N_ACTUAL_PARAMS N_IF_EXPR N_LET_EXPR N_ID_EXPR_LIST N_FUNCT_NAME N_PROGN_OR_USERFUNCTCALL N_LAMBDA_EXPR N_ID_LIST N_INPUT_EXPR N_EXPR_LIST N_BIN_OP N_ARITH_OP N_LOG_OP N_REL_OP
+%type <text> T_IDENT T_INTCONST T_STRCONST T_T T_NIL T_LT T_GT T_LE T_GE T_EQ T_NE T_AND T_OR T_NOT T_ADD T_SUB T_MULT T_DIV T_PROGN
+%type <typeInfo> N_EXPR N_CONST N_PRINT_EXPR N_PARENTHESIZED_EXPR N_ARITHLOGIC_EXPR N_ACTUAL_PARAMS N_IF_EXPR N_LET_EXPR N_ID_EXPR_LIST N_FUNCT_NAME N_PROGN_OR_USERFUNCTCALL N_INPUT_EXPR N_EXPR_LIST N_BIN_OP N_ARITH_OP N_LOG_OP N_REL_OP
 
 /*
  *	Starting point.
@@ -116,8 +117,6 @@ N_START		: // epsilon
 N_EXPR		: N_CONST
 			{
 			$$.type = $1.type; 
-			$$.numParams = $1.numParams;
-			$$.returnType = $1.returnType;
 			$$.value = $1.value;
 			}
             | T_IDENT
@@ -126,87 +125,63 @@ N_EXPR		: N_CONST
 			if (found.type == NOT_APPLICABLE) 
 				yyerror("Undefined identifier");
 			$$.type = found.type; 
-			$$.numParams = found.numParams;
-			$$.returnType = found.returnType;
 			$$.value = found.value;
 			}
             | T_LPAREN N_PARENTHESIZED_EXPR T_RPAREN
             {
 			$$.type = $2.type; 
-			$$.numParams = $2.numParams;
-			$$.returnType = $2.returnType;
 			$$.value = $2.value;
 			}
 			;
 N_CONST		: T_INTCONST
 			{
 			$$.type = INT;
-			$$.numParams = NOT_APPLICABLE;
-			$$.returnType = NOT_APPLICABLE;
 			$$.value = $1;
 			}
             | T_STRCONST
 			{
 			$$.type = STR;
-			$$.numParams = NOT_APPLICABLE;
-			$$.returnType = NOT_APPLICABLE;
 			$$.value = $1;
 			}
             | T_T
             {
 			$$.type = BOOL;
-			$$.numParams = NOT_APPLICABLE;
-			$$.returnType = NOT_APPLICABLE;
 			$$.value = $1;
 			}
             | T_NIL
             {
 			$$.type = BOOL;
-			$$.numParams = NOT_APPLICABLE;
-			$$.returnType = NOT_APPLICABLE;
 			$$.value = $1;
 			}
 			;
 N_PARENTHESIZED_EXPR	: N_ARITHLOGIC_EXPR 
 				{
 				$$.type = $1.type;
-				$$.numParams = $1.numParams;
-				$$.returnType = $1.returnType;
 				$$.value = $1.value;
 				}
             	| N_IF_EXPR 
 				{
 				$$.type = $1.type;
-				$$.numParams = $1.numParams;
-				$$.returnType = $1.returnType;
 				$$.value = $1.value;
 				}
             	| N_LET_EXPR 
 				{
 				$$.type = $1.type;
-				$$.numParams = $1.numParams;
-				$$.returnType = $1.returnType;
 				$$.value = $1.value;
 				}
                 | N_PRINT_EXPR 
 				{
 				$$.type = $1.type;
-				$$.numParams = $1.numParams;
-				$$.returnType = $1.returnType;
 				$$.value = $1.value;
 				}
                 | N_INPUT_EXPR 
 				{
 				$$.type = $1.type;
-				$$.numParams = $1.numParams;
-				$$.returnType = $1.returnType;
 				$$.value = $1.value;
 				}
             	| N_PROGN_OR_USERFUNCTCALL 
 				{
 				$$.type = $1.type;
-				$$.numParams = $1.numParams;
-				$$.returnType = $1.returnType;
 				$$.value = $1.value;
 				}
 				| T_EXIT
@@ -216,87 +191,33 @@ N_PARENTHESIZED_EXPR	: N_ARITHLOGIC_EXPR
 				;
 N_PROGN_OR_USERFUNCTCALL : N_FUNCT_NAME N_ACTUAL_PARAMS
 				{
-					if($1.type != FUNCTION)
-					{
-						if($2.type == NOT_APPLICABLE)
-						{
-							$$.type = BOOL;
-							$$.numParams = NOT_APPLICABLE;
-							$$.returnType = NOT_APPLICABLE;
-						}
-						else
-						{
-							$$.type = $2.type;
-							$$.numParams = $2.numParams;
-							$$.returnType = $2.returnType;
-						}
-					}
-					else if($1.numParams > numExpressions)
-					{
-						yyerror("Too many parameters in function call");
-					}
-					else if($2.numParams > numExpressions)
-					{
-						yyerror("Too few parameters in function call");
-					}
-					else if($1.type == FUNCTION)
-					{
-						$$.type = $1.returnType;
-						$$.returnType = NOT_APPLICABLE;
-						$$.numParams = NOT_APPLICABLE;
-					}
+				//epsilon N_ACTUAL_PARAMS		
+				if($2.type == NOT_APPLICABLE)
+				{
+					$$.type = BOOL;
+					$$.value = $2.value;
 				}
-				| T_LPAREN N_LAMBDA_EXPR T_RPAREN N_ACTUAL_PARAMS 
-				{ 
-					if($2.numParams < numExpressions)
-					{
-						yyerror("Too many parameters in function call");
-					}
-					else if(numExpressions < $2.numParams)
-					{
-						yyerror("Too few parameters in function call");
-					}
-
-					$$.type = $2.returnType;
-					$$.returnType = NOT_APPLICABLE;
-					$$.numParams = NOT_APPLICABLE;
-				} 
+				else
+				{
+					$$.type = $2.type;
+					$$.value = "nil";
+				}
+				}
 				;
 N_FUNCT_NAME	: T_PROGN
 				{
 				$$.type = NOT_APPLICABLE;
-				$$.returnType = NOT_APPLICABLE;
-				$$.numParams = NOT_APPLICABLE;
-				}
-				| T_IDENT
-				{
-				TYPE_INFO info = findEntryInAnyScope(string($1));
-				if (info.type == NOT_APPLICABLE) 
-				{
-				  yyerror("Undefined identifier");
-				}
-				else if(info.type != FUNCTION)
-				{
-					yyerror("Arg 1 must be a function");
-				}
-				$$.returnType = info.returnType;
-				$$.numParams = info.numParams;
-				$$.type = FUNCTION;
+				$$.value = $1;
 				}
                 ;
 N_ARITHLOGIC_EXPR	: N_UN_OP N_EXPR
 				{
-					if($2.type == FUNCTION)
-						yyerror("Arg 1 cannot be a function");
-					$$.type = BOOL;
-					$$.numParams = NOT_APPLICABLE;
-					$$.returnType = NOT_APPLICABLE;
-					//just invert, as not is the only unary operator
-					const char* expr=$2.value;
-					if(strcmp(expr, "nil")==0)
-						$2.value="t";
-					else
-						$2.value="nil";
+				//just invert, as not is the only unary operator
+				const char* expr=$2.value;
+				if(strcmp(expr, "nil")==0)
+					$2.value="t";
+				else
+					$2.value="nil";
 				}
 				| N_BIN_OP N_EXPR N_EXPR
 				{
@@ -313,8 +234,7 @@ N_ARITHLOGIC_EXPR	: N_UN_OP N_EXPR
 							else
 							{
 								$$.type = INT;
-								$$.returnType = NOT_APPLICABLE;
-								$$.numParams = NOT_APPLICABLE;
+
 								const char* operator = $1.value;
 								int num1 = atoi($2.value);
 								int num2 = atoi($3.value);
@@ -359,8 +279,6 @@ N_ARITHLOGIC_EXPR	: N_UN_OP N_EXPR
 						else
 						{
 							$$.type = BOOL;
-							$$.returnType = NOT_APPLICABLE;
-							$$.numParams = NOT_APPLICABLE;	
 
 							const char* operator = $1.value;
 
@@ -421,8 +339,6 @@ N_ARITHLOGIC_EXPR	: N_UN_OP N_EXPR
 						else
 						{
 							$$.type = BOOL;
-							$$.returnType = NOT_APPLICABLE;
-							$$.numParams = NOT_APPLICABLE;	
 
 							if($2.type == INT)
 							{
@@ -525,57 +441,23 @@ N_ARITHLOGIC_EXPR	: N_UN_OP N_EXPR
 				}
                      	;
 N_IF_EXPR   : T_IF N_EXPR N_EXPR N_EXPR
-			{
-				
-				if($2.type == FUNCTION)
-				{
-					yyerror("Arg 1 cannot be a function");
-				}
-				if($3.type == FUNCTION)
-				{
-					yyerror("Arg 2 cannot be a function");
-				}
-				if($4.type == FUNCTION)
-				{
-					yyerror("Arg 3 cannot be a function");
-				}
-				
-	
-				
-				//------------------------------------------
-				//------------------------------------------
-				//------------------------------------------
-				//------------------------------------------
-				//$$.type = $3.type | $4.type; WE DONT SEEM TO NEED THIS ANYMORE
-				$$.numParams = NOT_APPLICABLE;
-				$$.returnType = NOT_APPLICABLE;	
-
-
+			{			
 				if($2.type == nil)
 				{
 					$$.type = $4.type;
+					$$.value = $4.value;
 				}
 				else
 				{
 					$$.type = $3.type;
-				}
-
-				//------------------------------------------	
-				//------------------------------------------
-				//------------------------------------------
-				//------------------------------------------			
+					$$.value = $3.value;
+				}		
 			}
 			;
 N_LET_EXPR  : T_LETSTAR T_LPAREN N_ID_EXPR_LIST T_RPAREN N_EXPR
 			{
-
-			
-			if($5.type == FUNCTION)
-			{
-				endScope();
-				yyerror("Arg 2 cannot be a function");
-			}
 			$$.type = $5.type;
+			$$.value = $5.value;
 			endScope();
 			}
 			;
@@ -584,144 +466,115 @@ N_ID_EXPR_LIST  :
 			}
             | N_ID_EXPR_LIST T_LPAREN T_IDENT N_EXPR T_RPAREN 
 			{
-
-			//------------------------------------------
-			//------------------------------------------
-			//------------------------------------------
-			//------------------------------------------
-			$3.type = $4.type
 			string lexeme = string($3);
 			bool success = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme,
-																		$4.type, $4.numParams, $4.returnType));
+																		$4.type, $4.value));
 			if (!success) 
 				yyerror("Multiply defined identifier");
-			//------------------------------------------
-			//------------------------------------------
-			//------------------------------------------
-			//------------------------------------------
 			}
 			;
-/*NOT NEEDED IN THIS PROJECT SO I COMMENTED THEM OUT... N_LAMBDA_EXPR   : T_LAMBDA T_LPAREN N_ID_LIST T_RPAREN N_EXPR 
-			{
-			if($5.type == FUNCTION)
-			{
-				yyerror("Arg 2 cannot be a function");
-			}
-			$$.returnType = $5.type;
-			$$.type = FUNCTION;
-			int num = scopeStack.top().getSize();
-			$$.numParams = num;
-			endScope();
-			}
-			;
-N_ID_LIST       : 
-			{
-			}
-            | N_ID_LIST T_IDENT 
-			{
-			string lexeme = string($2);
-			bool success = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme,
-																		INT_OR_STR_OR_BOOL,NOT_APPLICABLE, NOT_APPLICABLE));
-			if (! success) 
-				yyerror("Multiply defined identifier");
-			}
-			;*/
 N_PRINT_EXPR    : T_PRINT N_EXPR
 			{
-			if($2.type == FUNCTION)
-			{
-				yyerror("Arg 1 cannot be a function");
-			}
 			$$.type = $2.type;
-			$$.numParams = NOT_APPLICABLE;
-			$$.returnType = NOT_APPLICABLE;
+			$$.value = $2.value;
 
-			//------------------------------------------
-			//------------------------------------------
-			//------------------------------------------
-			//------------------------------------------
 			printf($2.value);
 			printf("\n");
-			//------------------------------------------
-			//------------------------------------------
-			//------------------------------------------
-			//------------------------------------------
 			}
 			;
 N_INPUT_EXPR    : T_INPUT
 			{
-			$$.type = INT_OR_STR;
-			$$.numParams = NOT_APPLICABLE;
-			$$.returnType = NOT_APPLICABLE;
+			std::getline($$.value, 256);
+			if($$.value[0] == '+' || $$.value[0] == '+' || isdigit($$.value[0])
+			{
+				$$.type = INT;
+			}
+			else
+			{
+				$$.type = STR;
+			}
 			}
 			;
 N_EXPR_LIST : N_EXPR N_EXPR_LIST  
 			{
 			numExpressions += 1;
 			$$.type = $2.type;
-			$$.numParams = $2.numParams;
-			$$.returnType = $2.returnType;
+			$$.type = $2.value;
 			}
             | N_EXPR
 			{
 			numExpressions = 1;
 			$$.type = $1.type;
-			$$.numParams = $1.numParams;
-			$$.returnType = $1.returnType;			
+			$$.type = $1.value;
 			}
 			;
 N_BIN_OP	: N_ARITH_OP
 			{
 			$$.type = ARITHMETIC_OP;
+			$$.value=$1.value;
 			}
 			|
 			N_LOG_OP
 			{
 			$$.type = LOGICAL_OP;
+			$$.value=$1.value;
 			}
 			|
 			N_REL_OP
 			{
 			$$.type = RELATIONAL_OP;
+			$$.value=$1.value;
 			}
 			;
 N_ARITH_OP	: T_ADD
 			{
+			$$.value=$1;
 			}
             | T_SUB
 			{
+			$$.value=$1;
 			}
 			| T_MULT
 			{
+			$$.value=$1;
 			}
 			| T_DIV
 			{
+			$$.value=$1;
 			}
 			;
 N_REL_OP	: T_LT
 			{
+			$$.value=$1;
 			}	
 			| T_GT
 			{
+			$$.value=$1;
 			}	
 			| T_LE
 			{
+			$$.value=$1;
 			}	
 			| T_GE
 			{
+			$$.value=$1;
 			}	
 			| T_EQ
 			{
+			$$.value=$1;
 			}	
 			| T_NE
 			{
+			$$.value=$1;
 			}
 			;	
 N_LOG_OP	: T_AND
 			{
+			$$.value=$1;
 			}	
 			| T_OR
 			{
+			$$.value=$1;
 			}
 			;
 N_UN_OP	     : T_NOT
@@ -731,14 +584,12 @@ N_UN_OP	     : T_NOT
 N_ACTUAL_PARAMS	: //epsilon
 				{
 				$$.type = NOT_APPLICABLE;
-				$$.numParams = 0;
-				$$.returnType = NOT_APPLICABLE;
+				$$.value = "nil";
 				}
 				| N_EXPR_LIST
 				{
 				$$.type = $1.type;
-				$$.numParams = $1.numParams;
-				$$.returnType = $1.returnType;
+				$$.value = $1.value;
 				}
 				;
 %%

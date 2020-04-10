@@ -44,8 +44,6 @@ public:
     {
       SYMBOL_TABLE_ENTRY x = itr->second;
       info.type = x.getTypeCode();
-      info.numParams = x.getNumParam();
-      info.returnType = x.getReturnT();
       info.value = x.getValue();
       return(info);
     }

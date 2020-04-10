@@ -20,8 +20,6 @@ private:
   // Member variables
   string name;
   int typeCode;  
-  int numParam;
-  int returnT;
   char* entryValue;
 
 public:
@@ -32,16 +30,12 @@ public:
   {
     name = theName;
     typeCode = theType;
-    numParam = UNDEFINED;
-    returnT = UNDEFINED;
   }
 
-   SYMBOL_TABLE_ENTRY(const string theName, const int theType, const int numP, const int rType), const char* value) 
+   SYMBOL_TABLE_ENTRY(const string theName, const int theType, char* value) 
   {
     name = theName;
     typeCode = theType;
-    numParam = numP;
-    returnT = rType;
     entryValue = value;
   }
 
@@ -49,8 +43,6 @@ public:
   // Accessors
   string getName() const { return name; }
   int getTypeCode() const { return typeCode; }
-  int getNumParam() const { return numParam; }
-  int getReturnT() const { return returnT; }
   char* getValue() const { return entryValue; }
 
 
